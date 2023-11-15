@@ -1,0 +1,9 @@
+D:\csu\CalculatorFor5class2\CalculatorFor5class2\bin\Debug\CalculatorFor5class2.exe.config
+D:\csu\CalculatorFor5class2\CalculatorFor5class2\bin\Debug\CalculatorFor5class2.exe
+D:\csu\CalculatorFor5class2\CalculatorFor5class2\bin\Debug\CalculatorFor5class2.pdb
+D:\csu\CalculatorFor5class2\CalculatorFor5class2\obj\Debug\CalculatorFor5class2.csproj.AssemblyReference.cache
+D:\csu\CalculatorFor5class2\CalculatorFor5class2\obj\Debug\CalculatorFor5class2.Properties.Resources.resources
+D:\csu\CalculatorFor5class2\CalculatorFor5class2\obj\Debug\CalculatorFor5class2.csproj.GenerateResource.cache
+D:\csu\CalculatorFor5class2\CalculatorFor5class2\obj\Debug\CalculatorFor5class2.csproj.CoreCompileInputs.cache
+D:\csu\CalculatorFor5class2\CalculatorFor5class2\obj\Debug\CalculatorFor5class2.exe
+D:\csu\CalculatorFor5class2\CalculatorFor5class2\obj\Debug\CalculatorFor5class2.pdb
