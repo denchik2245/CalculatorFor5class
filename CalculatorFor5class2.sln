@@ -4,6 +4,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CalculatorFor5class2", "Cal
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "test", "test\test.csproj", "{4D27F06A-AD4B-42C1-BF9A-E3CB3A1F4F70}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "test2", "test2\test2.csproj", "{30ED7E1E-8937-4A8B-8FAC-98EDB3DE5A0D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{4D27F06A-AD4B-42C1-BF9A-E3CB3A1F4F70}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4D27F06A-AD4B-42C1-BF9A-E3CB3A1F4F70}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4D27F06A-AD4B-42C1-BF9A-E3CB3A1F4F70}.Release|Any CPU.Build.0 = Release|Any CPU
+		{30ED7E1E-8937-4A8B-8FAC-98EDB3DE5A0D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{30ED7E1E-8937-4A8B-8FAC-98EDB3DE5A0D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{30ED7E1E-8937-4A8B-8FAC-98EDB3DE5A0D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{30ED7E1E-8937-4A8B-8FAC-98EDB3DE5A0D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
