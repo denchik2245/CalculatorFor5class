@@ -93,6 +93,28 @@ public class NumberSystemConverter
 
         return number;
     }
+    public static string ConvertToBaseSteps(long decimalNumber, int baseTo)
+    {
+        StringBuilder steps = new StringBuilder();
+        steps.Append("   Шаги перевода:\n");
+    
+        // Вспомогательный список для хранения промежуточных результатов
+        List<string> intermediateSteps = new List<string>();
+
+        while (decimalNumber > 0)
+        {
+            long remainder = decimalNumber % baseTo;
+            intermediateSteps.Add($"{decimalNumber} / {baseTo} = {decimalNumber / baseTo} с остатком {remainder}");
+            decimalNumber /= baseTo;
+        }
+    
+        // Шаги должны быть добавлены в обратном порядке, так как мы идем от младших разрядов к старшим
+        intermediateSteps.Reverse();
+        intermediateSteps.ForEach(step => steps.Append("   " + step + "\n"));
+    
+        return steps.ToString();
+    }
+
 }
 
 public class ConverterForm : Form
@@ -105,6 +127,8 @@ public class ConverterForm : Form
     private NumericUpDown baseToUpDown;
     private Button convertButton;
     private Label resultLabel;
+    private TextBox processTextBox;
+    
 
     private RadioButton rbToNumberSystem;
     private RadioButton rbToRoman;
@@ -125,6 +149,13 @@ public class ConverterForm : Form
     this.baseToUpDown = new NumericUpDown();
     this.convertButton = new Button();
     this.resultLabel = new Label();
+    
+    this.processTextBox = new TextBox();
+    this.processTextBox.Multiline = true;
+    this.processTextBox.ScrollBars = ScrollBars.Vertical;
+    this.processTextBox.Location = new System.Drawing.Point(280, 20);
+    this.processTextBox.Size = new System.Drawing.Size(250, 210);
+
     
     this.rbToNumberSystem = new RadioButton();
     this.rbToRoman = new RadioButton();
@@ -197,6 +228,7 @@ public class ConverterForm : Form
     this.Controls.Add(this.resultLabel);
     this.Controls.Add(this.rbToNumberSystem);
     this.Controls.Add(this.rbToRoman);
+    this.Controls.Add(this.processTextBox);
     
     this.Text = "Конвертер Систем Счисления";
     this.Size = new System.Drawing.Size(800, 800);
@@ -223,52 +255,100 @@ public class ConverterForm : Form
     }
 
     private void ConvertButton_Click(object sender, EventArgs e)
+{
+    processTextBox.Clear(); // Очистка текстового поля перед выводом нового процесса
+    try
     {
-        try
+        if (rbToNumberSystem.Checked)
         {
-            if (rbToNumberSystem.Checked)
+            int baseFrom = (int)baseFromUpDown.Value;
+            int baseTo = (int)baseToUpDown.Value;
+            string inputNumber = inputTextBox.Text;
+            long decimalNumber = NumberSystemConverter.ConvertToDecimal(inputNumber, baseFrom);
+            string convertedNumber = NumberSystemConverter.ConvertFromDecimal(decimalNumber, baseTo);
+            resultLabel.Text = "Результат: " + convertedNumber;
+
+            // Показываем шаги перевода числа из исходной системы в десятичную
+            processTextBox.AppendText("Переводим число из системы с основанием " + baseFrom + " в десятичную:\n");
+            processTextBox.AppendText(ConvertToDecimalSteps(inputNumber, baseFrom));
+
+            // Показываем шаги перевода числа из десятичной системы в целевую
+            processTextBox.AppendText("Теперь переводим десятичное число " + decimalNumber + " в систему с основанием " + baseTo + ":\n");
+            processTextBox.AppendText(ConvertToBaseSteps(decimalNumber, baseTo));
+        }
+        else if (rbToRoman.Checked)
+        {
+            string inputNumber = inputTextBox.Text;
+            if (int.TryParse(inputNumber, out int arabicNumber))
             {
-                long decimalNumber = NumberSystemConverter.ConvertToDecimal(inputTextBox.Text, (int)baseFromUpDown.Value);
-                string convertedNumber = NumberSystemConverter.ConvertFromDecimal(decimalNumber, (int)baseToUpDown.Value);
-                resultLabel.Text = "Результат: " + convertedNumber;
-            }
-            else if (rbToRoman.Checked)
-            {
-                // Попытка преобразования введенного текста в число
-                if (int.TryParse(inputTextBox.Text, out int arabicNumber))
+                if (arabicNumber >= 1 && arabicNumber <= 3999) // Ограничение для римских чисел
                 {
-                    // Проверка диапазона для римского числа
-                    if (arabicNumber >= 1 && arabicNumber <= 5000)
-                    {
-                        string romanNumber = NumberSystemConverter.ConvertToRoman(arabicNumber);
-                        resultLabel.Text = "Римское: " + romanNumber;
-                    }
-                    else
-                    {
-                        MessageBox.Show("Число для перевода в римскую систему должно быть в диапазоне от 1 до 5000.");
-                    }
+                    string romanNumber = NumberSystemConverter.ConvertToRoman(arabicNumber);
+                    resultLabel.Text = "Римское: " + romanNumber;
+                    processTextBox.AppendText("Переводим десятичное число " + arabicNumber + " в римское число:\n");
+                    processTextBox.AppendText(arabicNumber + " -> " + romanNumber + "\n");
                 }
                 else
                 {
-                    // Предположим, что введенная строка - это римское число
-                    try
-                    {
-                        int decimalNumber = NumberSystemConverter.ConvertFromRoman(inputTextBox.Text);
-                        resultLabel.Text = "Десятичное: " + decimalNumber.ToString();
-                    }
-                    catch (Exception)
-                    {
-                        MessageBox.Show("Некорректный ввод римского числа.");
-                    }
+                    MessageBox.Show("Число для перевода в римскую систему должно быть в диапазоне от 1 до 3999.");
+                }
+            }
+            else
+            {
+                try
+                {
+                    int decimalNumber = NumberSystemConverter.ConvertFromRoman(inputNumber);
+                    resultLabel.Text = "Десятичное: " + decimalNumber;
+                    processTextBox.AppendText("Переводим римское число " + inputNumber + " в десятичное число:\n");
+                    processTextBox.AppendText(inputNumber + " -> " + decimalNumber + "\n");
+                }
+                catch (Exception)
+                {
+                    MessageBox.Show("Некорректный ввод римского числа.");
                 }
             }
         }
-        catch (Exception ex)
-        {
-            MessageBox.Show("Ошибка: " + ex.Message);
-        }
     }
+    catch (Exception ex)
+    {
+        MessageBox.Show("Ошибка: " + ex.Message);
+    }
+}
+
+    private string ConvertToDecimalSteps(string inputNumber, int baseFrom)
+    {
+        StringBuilder steps = new StringBuilder();
+        // Здесь должен быть ваш код для отображения шагов конвертации
+        // Пример вывода:
+        steps.Append("Рассмотрим каждый символ числа начиная с конца и умножим его на основание системы в степени его позиции:\n");
+        for (int i = 0; i < inputNumber.Length; i++)
+        {
+            char digit = inputNumber[inputNumber.Length - 1 - i];
+            int digitValue = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ".IndexOf(digit);
+            steps.Append(digit + " * " + baseFrom + "^" + i + " = " + digitValue * (int)Math.Pow(baseFrom, i) + "\n");
+        }
+        steps.Append("Сложим все полученные значения.\n");
+        return steps.ToString();
+    }
+
     
+  private string ConvertToBaseSteps(long decimalNumber, int baseTo)
+    {
+        StringBuilder steps = new StringBuilder();
+        steps.Append("Процесс конвертации:\n");
+
+        long quotient = decimalNumber;
+        while (quotient != 0)
+        {
+            int remainder = (int)(quotient % baseTo);
+            quotient /= baseTo;
+            steps.Insert(0, $"Делим {quotient * baseTo} на {baseTo}, остаток {remainder}. Число теперь {quotient}.\n");
+        }
+
+        return steps.ToString();
+    }
+
+  
     [STAThread]
     static void Main()
     {
