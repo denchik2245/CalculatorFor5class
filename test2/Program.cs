@@ -12,7 +12,7 @@ public class NumberSystemConverter
     public static string ConvertFromDecimal(long decimalNumber, int baseTo)
     {
         if (baseTo < 2 || baseTo > digits.Length)
-            throw new ArgumentException("The base must be between 2 and " + digits.Length);
+            throw new ArgumentException("Основание должно быть от 2 до " + digits.Length);
 
         StringBuilder result = new StringBuilder();
         long currentNumber = decimalNumber;
@@ -30,7 +30,7 @@ public class NumberSystemConverter
     public static long ConvertToDecimal(string number, int baseFrom)
     {
         if (baseFrom < 2 || baseFrom > digits.Length)
-            throw new ArgumentException("The base must be between 2 and " + digits.Length);
+            throw new ArgumentException("Основание должно быть от 2 до " + digits.Length);
 
         long result = 0;
         int exponent = 0;
@@ -181,8 +181,8 @@ public class ConverterForm : Form
     this.processTextBox = new TextBox();
     this.processTextBox.Multiline = true;
     this.processTextBox.ScrollBars = ScrollBars.Vertical;
-    this.processTextBox.Location = new System.Drawing.Point(280, 20);
-    this.processTextBox.Size = new System.Drawing.Size(500, 210);
+    this.processTextBox.Location = new System.Drawing.Point(280, 10);
+    this.processTextBox.Size = new System.Drawing.Size(400, 150);
 
     
     this.rbToNumberSystem = new RadioButton();
@@ -216,7 +216,7 @@ public class ConverterForm : Form
     
     // Настройка inputLabel
     this.inputLabel.Text = "Введите число:";
-    this.inputLabel.Location = new System.Drawing.Point(10, 20);
+    this.inputLabel.Location = new System.Drawing.Point(10, 12);
     this.inputLabel.Size = new System.Drawing.Size(100, 20);
 
     // Настройка inputTextBox
@@ -225,7 +225,7 @@ public class ConverterForm : Form
 
     // Настройка baseFromLabel
     this.baseFromLabel.Text = "Из системы счисления (2-50):";
-    this.baseFromLabel.Location = new System.Drawing.Point(10, 40);
+    this.baseFromLabel.Location = new System.Drawing.Point(10, 43);
     this.baseFromLabel.Size = new System.Drawing.Size(180, 20);
 
     // Настройка baseFromUpDown
@@ -237,7 +237,7 @@ public class ConverterForm : Form
 
     // Настройка baseToLabel
     this.baseToLabel.Text = "В систему счисления (2-50):";
-    this.baseToLabel.Location = new System.Drawing.Point(10, 70);
+    this.baseToLabel.Location = new System.Drawing.Point(10, 72);
     this.baseToLabel.Size = new System.Drawing.Size(180, 20);
 
     // Настройка baseToUpDown
@@ -249,13 +249,13 @@ public class ConverterForm : Form
 
     // Настройка convertButton
     this.convertButton.Text = "Конвертировать";
-    this.convertButton.Location = new System.Drawing.Point(10, 100);
+    this.convertButton.Location = new System.Drawing.Point(12, 100);
     this.convertButton.Size = new System.Drawing.Size(260, 30);
     this.convertButton.Click += new EventHandler(this.ConvertButton_Click);
 
     // Настройка resultLabel
-    this.resultLabel.Location = new System.Drawing.Point(10, 220);
-    this.resultLabel.Size = new System.Drawing.Size(380, 20);
+    this.resultLabel.Location = new System.Drawing.Point(10, 140);
+    this.resultLabel.Size = new System.Drawing.Size(250, 20);
     
     // Радиокнопки
     this.rbToNumberSystem.Text = "Перевести в другую систему счисления";

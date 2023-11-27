@@ -10,9 +10,6 @@ public class NumberSystemConverter
     //Перевод из 10 системы
     public static string ConvertFromDecimal(long decimalNumber, int baseTo)
     {
-        if (baseTo < 2 || baseTo > digits.Length)
-            throw new ArgumentException("The base must be between 2 and " + digits.Length);
-
         StringBuilder result = new StringBuilder();
         long currentNumber = decimalNumber;
 
@@ -29,7 +26,7 @@ public class NumberSystemConverter
     public static long ConvertToDecimal(string number, int baseFrom)
     {
         if (baseFrom < 2 || baseFrom > digits.Length)
-            throw new ArgumentException("The base must be between 2 and " + digits.Length);
+            throw new ArgumentException("Основание должно быть от 2 до " + digits.Length);
 
         long result = 0;
         int exponent = 0;
