@@ -7,3 +7,4 @@ D:\csu\CalculatorFor5class2\test\obj\Debug\test.csproj.GenerateResource.cache
 D:\csu\CalculatorFor5class2\test\obj\Debug\test.csproj.CoreCompileInputs.cache
 D:\csu\CalculatorFor5class2\test\obj\Debug\test.exe
 D:\csu\CalculatorFor5class2\test\obj\Debug\test.pdb
+D:\csu\CalculatorFor5class2\test\obj\Debug\NumberSystemConverter.resources
