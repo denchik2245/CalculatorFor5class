@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 using System.Drawing;
+using System.Security.Cryptography;
 
 public class NumberSystemConverter
 {
@@ -51,6 +52,46 @@ public class NumberSystemConverter
         return result;
     }
     
+    //Объяснение в виде деления столбиком
+    public static string GenerateTreeStepsToBase(long decimalNumber, int baseTo)
+    {
+        StringBuilder steps = new StringBuilder();
+        List<string> divisionsAndRemainders = new List<string>(); // Список для хранения строк деления и остатков
+
+        // Переменные для хранения промежуточных результатов
+        long quotient = decimalNumber;
+        long remainder;
+
+        // Цикл, выполняющий последовательное деление
+        while (quotient != 0)
+        {
+            remainder = quotient % baseTo;
+            divisionsAndRemainders.Add($"{quotient} | {baseTo}");
+            divisionsAndRemainders.Add($"--- {remainder}");
+            quotient /= baseTo;
+        }
+
+        // Строим строку с делением слева направо
+        int indent = 0; // Начальный отступ
+        for (int i = 0; i < divisionsAndRemainders.Count; i += 2)
+        {
+            steps.AppendLine(new string(' ', indent) + divisionsAndRemainders[i]);
+            if (i + 1 < divisionsAndRemainders.Count)
+            {
+                steps.AppendLine(new string(' ', indent) + divisionsAndRemainders[i + 1]);
+            }
+            indent += 10; // Увеличиваем отступ для следующего шага
+        }
+
+        // Добавление направления взгляда и результата конвертации
+        steps.AppendLine(new string(' ', indent) + "<-- Считаем справа налево");
+        steps.Append(new string(' ', 1) + "Получилось: ");
+        steps.Append(string.Join("", divisionsAndRemainders.Where((_, index) => index % 2 != 0).Reverse()));
+        steps.Append($" в системе счисления {baseTo}");
+
+        return steps.ToString();
+    }
+    
     //Перевод в Римскую
     public static string ConvertToRoman(int number)
     {
@@ -96,91 +137,197 @@ public class NumberSystemConverter
         return number;
     }
     
-    //Сложение двух чисел
+    //Сложение
     public static string Summa(string num1, string num2, int baseOfNumbers)
     {
-        StringBuilder steps = new StringBuilder();
-        steps.AppendLine($"Сложение чисел {num1} и {num2} в системе с основанием {baseOfNumbers}:\n");
+        if (baseOfNumbers > digits.Length)
+        {
+            throw new ArgumentException($"Основание системы счисления {baseOfNumbers} больше, чем количество доступных символов.");
+        }
 
-        // Переводим числа в десятичную систему для упрощения процесса
+        StringBuilder result = new StringBuilder();
+        int carry = 0;
+
+        int maxLength = Math.Max(num1.Length, num2.Length);
+        num1 = num1.PadLeft(maxLength, '0');
+        num2 = num2.PadLeft(maxLength, '0');
+
+        for (int i = maxLength - 1; i >= 0; i--)
+        {
+            int digitValue1 = digits.IndexOf(num1[i]);
+            int digitValue2 = digits.IndexOf(num2[i]);
+
+            if (digitValue1 >= baseOfNumbers || digitValue2 >= baseOfNumbers)
+            {
+                throw new ArgumentException("Цифра в одном из чисел не соответствует системе счисления.");
+            }
+
+            int sum = digitValue1 + digitValue2 + carry;
+            carry = sum / baseOfNumbers;
+            sum %= baseOfNumbers;
+
+            result.Insert(0, digits[sum]);
+        }
+
+        if (carry > 0)
+        {
+            result.Insert(0, digits[carry]);
+        }
+
+        // Удаление лидирующих нулей в результате
+        return result.ToString().TrimStart('0');
+    }
+    
+    //Объяснение сложение
+    public static string GenerateSummationStepsWithCarry(string num1, string num2, int baseOfNumbers)
+    {
+        int maxLength = Math.Max(num1.Length, num2.Length);
+        StringBuilder carryOverBuilder = new StringBuilder(new string(' ', maxLength));
+        StringBuilder resultBuilder = new StringBuilder();
+
+        num1 = num1.PadLeft(maxLength, '0');
+        num2 = num2.PadLeft(maxLength, '0');
+
+        int carry = 0;
+        for (int i = maxLength - 1; i >= 0; i--)
+        {
+            char char1 = num1[i];
+            char char2 = num2[i];
+
+            int digit1 = char.IsDigit(char1) ? char1 - '0' : char1 - 'A' + 10;
+            int digit2 = char.IsDigit(char2) ? char2 - '0' : char2 - 'A' + 10;
+
+            int sum = digit1 + digit2 + carry;
+            carry = sum / baseOfNumbers;
+            sum %= baseOfNumbers;
+
+            char sumChar = (sum < 10) ? (char)(sum + '0') : (char)(sum - 10 + 'A');
+            resultBuilder.Insert(0, sumChar + " ");
+
+            if (i > 0)
+            {
+                carryOverBuilder[i - 1] = carry > 0 ? '1' : ' ';
+            }
+        }
+
+        if (carry > 0)
+        {
+            char carryChar = (carry < 10) ? (char)(carry + '0') : (char)(carry - 10 + 'A');
+            carryOverBuilder.Insert(0, carryChar + " ");
+            resultBuilder.Insert(0, carryChar + " ");
+        }
+
+        string carryOverString = carryOverBuilder.ToString().TrimStart();
+        string resultString = resultBuilder.ToString().Trim();
+
+        string num1String = String.Join(" ", num1.Select(c => c.ToString()));
+        string num2String = String.Join(" ", num2.Select(c => c.ToString()));
+
+        StringBuilder stepsBuilder = new StringBuilder();
+        stepsBuilder.AppendLine(carryOverString.PadLeft(resultString.Length));
+        stepsBuilder.AppendLine(num1String.PadLeft(resultString.Length));
+        stepsBuilder.AppendLine(num2String.PadLeft(resultString.Length));
+        stepsBuilder.AppendLine(new string('-', resultString.Length));
+        stepsBuilder.AppendLine(resultString);
+
+        return stepsBuilder.ToString();
+    }
+    
+    //Вычитание
+    public static string Subtract(string num1, string num2, int baseOfNumbers)
+    {
+        // Конвертация чисел из исходной системы счисления в десятичную
         long decimalNum1 = ConvertToDecimal(num1, baseOfNumbers);
         long decimalNum2 = ConvertToDecimal(num2, baseOfNumbers);
 
-        // Переменная для хранения переноса, если он есть
-        long carry = 0;
-        StringBuilder result = new StringBuilder();
-        int position = 1; // Позиция разряда, начиная с единиц
-
-        // Переводим в обратную строку, чтобы начать сложение с младших разрядов
-        char[] num1Array = num1.Reverse().ToArray();
-        char[] num2Array = num2.Reverse().ToArray();
-
-        int maxLength = Math.Max(num1Array.Length, num2Array.Length);
-        for (int i = 0; i < maxLength; i++)
-        {
-            long value1 = i < num1Array.Length ? digits.IndexOf(num1Array[i]) : 0;
-            long value2 = i < num2Array.Length ? digits.IndexOf(num2Array[i]) : 0;
-            long sum = value1 + value2 + carry;
-            carry = sum / baseOfNumbers;
-            sum = sum % baseOfNumbers;
-            result.Insert(0, digits[(int)sum]);
+        // Вычитание чисел в десятичной системе счисления
+        long decimalResult = decimalNum1 - decimalNum2;
         
-            steps.AppendLine($"Шаг {position}: Складываем {value1} (из {num1}) и {value2} (из {num2}) " +
-                             $"+ перенос {carry}. Результат = {sum} и перенос = {carry}.");
-
-            position++;
-        }
-
-        // Если остался перенос после последнего сложения
-        if (carry > 0)
+        if (decimalResult < 0)
         {
-            result.Insert(0, digits[(int)carry]);
-            steps.AppendLine($"Добавляем оставшийся перенос {carry} в старший разряд.");
+            throw new ArgumentException("Результат вычитания отрицательный.");
         }
 
-        steps.AppendLine($"Итоговый результат сложения: {result}");
-        return steps.ToString();
+        // Конвертация результата обратно в исходную систему счисления
+        string result = ConvertFromDecimal(decimalResult, baseOfNumbers);
+
+        // Возвращаем результат
+        return result;
     }
     
-    public static string GenerateTreeStepsToBase(long decimalNumber, int baseTo)
+    // Умножение
+    public static string Multiply(string num1, string num2, int baseOfNumbers)
     {
-        StringBuilder steps = new StringBuilder();
-        List<string> divisionsAndRemainders = new List<string>(); // Список для хранения строк деления и остатков
+        // Конвертация чисел из исходной системы счисления в десятичную
+        long decimalNum1 = ConvertToDecimal(num1, baseOfNumbers);
+        long decimalNum2 = ConvertToDecimal(num2, baseOfNumbers);
 
-        // Переменные для хранения промежуточных результатов
-        long quotient = decimalNumber;
-        long remainder;
+        // Умножение чисел в десятичной системе счисления
+        long decimalResult = decimalNum1 * decimalNum2;
 
-        // Цикл, выполняющий последовательное деление
-        while (quotient != 0)
+        // Конвертация результата обратно в исходную систему счисления
+        string result = ConvertFromDecimal(decimalResult, baseOfNumbers);
+
+        // Возвращаем результат
+        return result;
+    }
+    
+    public static string GenerateMultiplicationSteps(string num1, string num2, int baseOfNumbers)
+{
+    List<string> products = new List<string>();
+    string sum = string.Empty.PadLeft(num1.Length + num2.Length, '0');
+    StringBuilder output = new StringBuilder();
+
+    // Подготовка строки для разделения результатов умножения
+    string separatorLine = new string('-', num1.Length + num2.Length);
+
+    for (int i = num2.Length - 1; i >= 0; i--)
+    {
+        int carry = 0;
+        StringBuilder currentProduct = new StringBuilder();
+        
+        for (int j = num1.Length - 1; j >= 0; j--)
         {
-            remainder = quotient % baseTo;
-            divisionsAndRemainders.Add($"{quotient} | {baseTo}");
-            divisionsAndRemainders.Add($"---- {remainder}");
-            quotient /= baseTo;
+            int digit1 = digits.IndexOf(num1[j]);
+            int digit2 = digits.IndexOf(num2[i]);
+            int product = digit1 * digit2 + carry;
+            carry = product / baseOfNumbers;
+            product %= baseOfNumbers;
+            currentProduct.Insert(0, digits[product]);
         }
 
-        // Строим строку с делением слева направо
-        int indent = 0; // Начальный отступ
-        for (int i = 0; i < divisionsAndRemainders.Count; i += 2)
+        if (carry > 0)
         {
-            steps.AppendLine(new string(' ', indent) + divisionsAndRemainders[i]);
-            if (i + 1 < divisionsAndRemainders.Count)
-            {
-                steps.AppendLine(new string(' ', indent) + divisionsAndRemainders[i + 1]);
-            }
-            indent += 10; // Увеличиваем отступ для следующего шага
+            currentProduct.Insert(0, digits[carry]);
         }
 
-        // Добавление направления взгляда и результата конвертации
-        steps.AppendLine(new string(' ', indent) + "<-- Считаем слева направо");
-        steps.Append(new string(' ', indent) + "Получилось: ");
-        steps.Append(string.Join("", divisionsAndRemainders.Where((_, index) => index % 2 != 0).Reverse()));
-        steps.Append($" в системе счисления {baseTo}");
-
-        return steps.ToString();
+        // Добавляем сдвиг вправо, соответствующий текущей позиции цифры второго числа
+        products.Add(currentProduct.ToString().PadRight(num1.Length + num2.Length - i, ' '));
+        sum = Summa(sum, currentProduct.ToString().PadRight(num1.Length + num2.Length, '0'), baseOfNumbers);
     }
 
+    // Форматирование и вывод умножения
+    output.AppendLine(num1.PadLeft(separatorLine.Length));
+    output.AppendLine(num2.PadLeft(separatorLine.Length));
+    output.AppendLine(separatorLine);
+
+    // Добавляем промежуточные произведения с выравниванием вправо
+    foreach (string product in products)
+    {
+        output.AppendLine(product.PadLeft(separatorLine.Length));
+    }
+
+    // Проверяем, нужно ли добавлять линию сложения
+    if (products.Count > 1)
+    {
+        output.AppendLine(separatorLine);
+    }
+
+    // Итоговый результат с выравниванием вправо
+    output.AppendLine(sum.TrimStart('0').PadLeft(separatorLine.Length));
+
+    return output.ToString();
+}
 
     
 }
@@ -192,8 +339,15 @@ public class ConverterForm : Form
     private Label baseFromLabel;
     private Label baseToLabel;
     private Label resultLabel;
-    private Label stepsLabel;
     private Label linearStepsLabel;
+    private Label LabelforSumma;
+    private Label LabelforSummaNum1;
+    private Label LabelforSummaNum2;
+    private Label resultForRoman;
+    private Label resultForSumma;
+    private Label StepsForSumma;
+    private Label LabelforMulti;
+    private Label LabelForSubstract;
     
     private RichTextBox stepsRichTextBox;
     private RichTextBox treeStepsRichTextBox;
@@ -201,6 +355,9 @@ public class ConverterForm : Form
     //Создание кнопок
     private Button convertButton;
     private Button sumButton;
+    private Button convertButForRoman;
+    private Button MultiButton;
+    private Button SubstractButton;
     
     //Создание инпутов
     private TextBox inputTextBox;
@@ -211,6 +368,7 @@ public class ConverterForm : Form
     //Создание стрелочек вверх вниз
     private NumericUpDown baseFromUpDown;
     private NumericUpDown baseToUpDown;
+    private NumericUpDown UpDownFopSumma;
     
     //Создание радиокнопок
     private RadioButton rbToNumberSystem;
@@ -228,120 +386,201 @@ public class ConverterForm : Form
     
     private void InitializeComponent()
     {
-        //Инициализация обычного текста
-        inputLabel = new Label();
-        inputLabel.Location = new Point(10, 12);
-        inputLabel.Size = new Size(100, 20);
-        inputLabel.Text = "Введите число:";
+        //Инициализация раздела Сложение
+        LabelforSumma = new Label();
+        LabelforSumma.Location = new Point(10, 50);
+        LabelforSumma.Size = new Size(280, 20);
+        LabelforSumma.Text = "Введите систему счисления складываемых чисел:";
         
-        baseFromLabel = new Label();
-        baseFromLabel.Location = new Point(10, 43);
-        baseFromLabel.Size = new Size(180, 20);
-        baseFromLabel.Text = "Из системы счисления (2-50):";
+        LabelforSummaNum1 = new Label();
+        LabelforSummaNum1.Location = new Point(10, 90);
+        LabelforSummaNum1.Size = new Size(133, 20);
+        LabelforSummaNum1.Text = "Введите первое число:";
         
-        baseToLabel = new Label();
-        baseToLabel.Location = new Point(10, 72);
-        baseToLabel.Size = new Size(180, 20);
-        baseToLabel.Text = "В систему счисления (2-50):";
+        LabelforSummaNum2 = new Label();
+        LabelforSummaNum2.Location = new Point(10, 130);
+        LabelforSummaNum2.Size = new Size(133, 20);
+        LabelforSummaNum2.Text = "Введите второе число:";
         
-        resultLabel = new Label();
-        resultLabel.Location = new Point(10, 140);
-        resultLabel.Size = new Size(250, 20);
-        resultLabel.Text = "Результат: ";
+        number1TextBox = new TextBox();
+        number1TextBox.Location = new Point(145, 88);
+        number1TextBox.Size = new Size(100, 20);
         
-     
-        linearStepsLabel = new Label();
-        linearStepsLabel.Location = new Point(10, 300);
-        linearStepsLabel.Size = new Size(680, 200);
-        linearStepsLabel.Text = "";
-        linearStepsLabel.BorderStyle = BorderStyle.FixedSingle;
+        number2TextBox = new TextBox();
+        number2TextBox.Location = new Point(145, 128);
+        number2TextBox.Size = new Size(100, 20);
         
-        //Деревовидное
-        treeStepsRichTextBox = new RichTextBox();
-        treeStepsRichTextBox.Location = new Point(310, 10); // Примерные координаты
-        treeStepsRichTextBox.Size = new Size(500, 270);   // Примерные размеры
-        treeStepsRichTextBox.Text = "";
-        
-        //Инициализация кнопок
-        convertButton = new Button();
-        convertButton.Location = new Point(12, 100);
-        convertButton.Size = new Size(260, 30);
-        convertButton.Text = "Конвертировать";
-        convertButton.Click += (ConvertButton_Click);
+        UpDownFopSumma = new NumericUpDown();
+        UpDownFopSumma.Location = new Point(290, 48);
+        UpDownFopSumma.Size = new Size(80, 20);
+        UpDownFopSumma.Maximum = new decimal(new [] { 50, 0, 0, 0 });
+        UpDownFopSumma.Minimum = new decimal(new [] { 2, 0, 0, 0 });
+        UpDownFopSumma.Value = new decimal(new [] { 10, 0, 0, 0 });
         
         sumButton = new Button();
-        sumButton.Location = new Point(230, 250);
+        sumButton.Location = new Point(10, 170);
         sumButton.Size = new Size(75, 23);
         sumButton.Text = "Сложить";
         sumButton.Click += (SumButton_Click);
         
-        //Инициализация инпутов
+        resultForSumma = new Label();
+        resultForSumma.Location = new Point(90, 174);
+        resultForSumma.Size = new Size(1050, 20);
+        resultForSumma.Text = "Результат: ";
+        
+        StepsForSumma = new Label();
+        StepsForSumma.Location = new Point(10, 220);
+        StepsForSumma.Size = new Size(500, 300);
+        StepsForSumma.Text = "";
+        StepsForSumma.BorderStyle = BorderStyle.FixedSingle;
+        
+        //Инициализация раздела Перевести в Римскую
+        inputLabel = new Label();
+        inputLabel.Location = new Point(10, 50);
+        inputLabel.Size = new Size(100, 20);
+        inputLabel.Text = "Введите число:";
+        
         inputTextBox = new TextBox();
-        inputTextBox.Location = new Point(120, 10);
+        inputTextBox.Location = new Point(120, 48);
         inputTextBox.Size = new Size(150, 20);
         
-        number1TextBox = new TextBox();
-        number1TextBox.Location = new Point(10, 250);
-        number1TextBox.Size = new Size(100, 20);
+        convertButForRoman = new Button();
+        convertButForRoman.Location = new Point(12, 80);
+        convertButForRoman.Size = new Size(260, 30);
+        convertButForRoman.Text = "Конвертировать в Римскую/из Римской";
+        convertButForRoman.Click += (ConvertButForRoman_Click);
         
-        number2TextBox = new TextBox();
-        number2TextBox.Location = new Point(120, 250);
-        number2TextBox.Size = new Size(100, 20);
+        resultForRoman = new Label();
+        resultForRoman.Location = new Point(10, 120);
+        resultForRoman.Size = new Size(250, 20);
+        resultForRoman.Text = "Римское: ";
         
-        //Инициализация стрелочек вверх вниз
+        //Инициализация раздела Перевод в другую СС
+        baseFromLabel = new Label();
+        baseFromLabel.Location = new Point(10, 81);
+        baseFromLabel.Size = new Size(180, 20);
+        baseFromLabel.Text = "Из системы счисления (2-50):";
+        
+        baseToLabel = new Label();
+        baseToLabel.Location = new Point(10, 110);
+        baseToLabel.Size = new Size(180, 20);
+        baseToLabel.Text = "В систему счисления (2-50):";
+        
         baseFromUpDown = new NumericUpDown();
-        baseFromUpDown.Location = new Point(190, 40);
+        baseFromUpDown.Location = new Point(190, 78);
         baseFromUpDown.Size = new Size(80, 20);
         baseFromUpDown.Maximum = new decimal(new [] { 50, 0, 0, 0 });
         baseFromUpDown.Minimum = new decimal(new [] { 2, 0, 0, 0 });
         baseFromUpDown.Value = new decimal(new [] { 10, 0, 0, 0 });
         
         baseToUpDown = new NumericUpDown();
-        baseToUpDown.Location = new Point(190, 70);
+        baseToUpDown.Location = new Point(190, 108);
         baseToUpDown.Size = new Size(80, 20);
         baseToUpDown.Maximum = new decimal(new [] { 50, 0, 0, 0 });
         baseToUpDown.Minimum = new decimal(new [] { 2, 0, 0, 0 });
         baseToUpDown.Value = new decimal(new [] { 2, 0, 0, 0 });
         
+        convertButton = new Button();
+        convertButton.Location = new Point(12, 138);
+        convertButton.Size = new Size(260, 30);
+        convertButton.Text = "Конвертировать";
+        convertButton.Click += (ConvertButton_Click);
+        
+        resultLabel = new Label();
+        resultLabel.Location = new Point(10, 180);
+        resultLabel.Size = new Size(250, 20);
+        resultLabel.Text = "Результат: ";
+        
+        linearStepsLabel = new Label();
+        linearStepsLabel.Location = new Point(10, 220);
+        linearStepsLabel.Size = new Size(500, 300);
+        linearStepsLabel.Text = "";
+        linearStepsLabel.BorderStyle = BorderStyle.FixedSingle;
+        
+        treeStepsRichTextBox = new RichTextBox();
+        treeStepsRichTextBox.Location = new Point(530, 220);
+        treeStepsRichTextBox.Size = new Size(600, 300);
+        treeStepsRichTextBox.Text = "";
+        
+        //Умножить
+        LabelforMulti = new Label();
+        LabelforMulti.Location = new Point(10, 50);
+        LabelforMulti.Size = new Size(280, 20);
+        LabelforMulti.Text = "Введите систему счисления умножаемых чисел:";
+        
+        MultiButton = new Button();
+        MultiButton.Location = new Point(10, 170);
+        MultiButton.Size = new Size(75, 23);
+        MultiButton.Text = "Умножить";
+        MultiButton.Click += (MultiplyButton_Click);
+        
+        //Вычитание
+        SubstractButton = new Button();
+        SubstractButton.Location = new Point(10, 170);
+        SubstractButton.Size = new Size(75, 23);
+        SubstractButton.Text = "Вычесть";
+        SubstractButton.Click += (SubtractButton_Click);
+        
+        LabelForSubstract = new Label();
+        LabelForSubstract.Location = new Point(10, 50);
+        LabelForSubstract.Size = new Size(280, 20);
+        LabelForSubstract.Text = "Введите систему счисления вычитаемых чисел:";
+        
+        
         //Инициализация радиокнопок
         rbToNumberSystem = new RadioButton();
         rbToNumberSystem.Checked = true;
-        rbToNumberSystem.Location = new Point(10, 170);
-        rbToNumberSystem.Size = new Size(250, 20);
+        rbToNumberSystem.Location = new Point(10, 10);
+        rbToNumberSystem.Size = new Size(230, 20);
         rbToNumberSystem.TabStop = true;
         rbToNumberSystem.Text = "Перевести в другую систему счисления";
+        rbToNumberSystem.CheckedChanged += new EventHandler(rbToNumberSystem_CheckedChanged);
         
         rbToRoman = new RadioButton();
-        rbToRoman.Location = new Point(10, 190);
-        rbToRoman.Size = new Size(250, 20);
+        rbToRoman.Location = new Point(250, 10);
+        rbToRoman.Size = new Size(140, 20);
         rbToRoman.Text = "Перевести в Римскую систему";
+        rbToRoman.CheckedChanged += new EventHandler(rbToRoman_CheckedChanged);
         
         rbAddition = new RadioButton();
         rbAddition.Text = "Сложение";
-        rbAddition.Location = new Point(10, 220); 
-        rbAddition.Size = new Size(100, 20);
+        rbAddition.Location = new Point(400, 10); 
+        rbAddition.Size = new Size(80, 20);
+        rbAddition.CheckedChanged += new EventHandler(rbAddition_CheckedChanged);
         
         rbSubtraction = new RadioButton();
         rbSubtraction.Text = "Вычитание";
-        rbSubtraction.Location = new Point(120, 220);
-        rbSubtraction.Size = new Size(100, 20);
+        rbSubtraction.Location = new Point(485, 10);
+        rbSubtraction.Size = new Size(85, 20);
+        rbSubtraction.CheckedChanged += new EventHandler(rbSubstract_CheckedChanged);
 
         rbMultiplication = new RadioButton();
         rbMultiplication.Text = "Умножение";
-        rbMultiplication.Location = new Point(230, 220);
+        rbMultiplication.Location = new Point(575, 10);
         rbMultiplication.Size = new Size(100, 20);
-        
+        rbMultiplication.CheckedChanged += new EventHandler(rbMulti_CheckedChanged);
         
         //Добавление элементов на форму
         Text = "Калькулятор для 5 классника";
-        ClientSize = new Size(900, 700);
+        ClientSize = new Size(1100, 700);
         Controls.Add(inputLabel);
         Controls.Add(baseFromLabel);
         Controls.Add(baseToLabel);
         Controls.Add(resultLabel);
+        Controls.Add(LabelforSumma);
+        Controls.Add(LabelforSummaNum1);
+        Controls.Add(LabelforSummaNum2);
+        Controls.Add(resultForRoman);
+        Controls.Add(resultForSumma);
+        Controls.Add(StepsForSumma);
+        Controls.Add(LabelforMulti);
+        Controls.Add(LabelForSubstract);
         
         Controls.Add(convertButton);
         Controls.Add(sumButton);
+        Controls.Add(convertButForRoman);
+        Controls.Add(MultiButton);
+        Controls.Add(SubstractButton);
         
         Controls.Add(inputTextBox);
         Controls.Add(number1TextBox);
@@ -349,6 +588,7 @@ public class ConverterForm : Form
         
         Controls.Add(baseFromUpDown);
         Controls.Add(baseToUpDown);
+        Controls.Add(UpDownFopSumma);
         
         Controls.Add(rbToNumberSystem);
         Controls.Add(rbToRoman);
@@ -366,38 +606,175 @@ public class ConverterForm : Form
         PerformLayout();
     }
     
+    //Обновление интерфейса в зависимости от выбранной операции
     private void UpdateUI()
     {
-        // Обновление интерфейса в зависимости от выбранной радиокнопки
-        bool isToNumberSystem = rbToNumberSystem.Checked;
-        baseFromLabel.Visible = isToNumberSystem;
-        baseFromUpDown.Visible = isToNumberSystem;
-        baseToLabel.Visible = isToNumberSystem;
-        baseToUpDown.Visible = isToNumberSystem;
+        // Проверка, какая радиокнопка выбрана
+        bool isConversionSelected = rbToNumberSystem.Checked;
+        bool isRomanSelected = rbToRoman.Checked;
+        bool isAdditionSelected = rbAddition.Checked;
+        bool isMultiplicationSelected = rbMultiplication.Checked;
+        bool isSubstractSelected = rbSubtraction.Checked;
+
+        // Включение/выключение элементов управления для конвертации
+        baseFromLabel.Visible = isConversionSelected;
+        baseFromUpDown.Visible = isConversionSelected;
+        baseToLabel.Visible = isConversionSelected;
+        baseToUpDown.Visible = isConversionSelected;
+        
+        // Кнопка "Конвертировать" и поле "Результат" доступны для конвертации и римских чисел
+        convertButton.Visible = isConversionSelected;
+        resultLabel.Visible = isConversionSelected;
+        
+        // Всегда показываем поле ввода числа
+        inputTextBox.Visible = isConversionSelected || isRomanSelected;
+        inputLabel.Visible = isConversionSelected || isRomanSelected;
+        LabelforSumma.Visible = isAdditionSelected;
+
+        //Перевести в Римскую
+        convertButForRoman.Visible = isRomanSelected;
+        resultForRoman.Visible = isRomanSelected;
+        
+        // Сложения
+        LabelforSumma.Visible = isAdditionSelected;
+        number1TextBox.Visible = isAdditionSelected || isMultiplicationSelected || isSubstractSelected;
+        number2TextBox.Visible = isAdditionSelected || isMultiplicationSelected || isSubstractSelected;
+        sumButton.Visible = isAdditionSelected;
+        UpDownFopSumma.Visible = isAdditionSelected || isMultiplicationSelected || isSubstractSelected;
+        LabelforSummaNum1.Visible = isAdditionSelected || isMultiplicationSelected || isSubstractSelected;
+        LabelforSummaNum2.Visible = isAdditionSelected || isMultiplicationSelected || isSubstractSelected;
+        resultForSumma.Visible = isAdditionSelected || isMultiplicationSelected || isSubstractSelected;
+        StepsForSumma.Visible = isAdditionSelected || isMultiplicationSelected || isSubstractSelected;
+        
+        //Вычитание
+        SubstractButton.Visible = isSubstractSelected;
+        LabelForSubstract.Visible = isSubstractSelected;
+        
+        //Умножение
+        LabelforMulti.Visible = isMultiplicationSelected;
+        MultiButton.Visible = isMultiplicationSelected;
+        
+        // Включение/выключение шагов конвертации в зависимости от выбора операции
+        linearStepsLabel.Visible = isConversionSelected;
+        treeStepsRichTextBox.Visible = isConversionSelected;
     }
     
     //Кнопка Сложить
     private void SumButton_Click(object sender, EventArgs e)
     {
-        // Очищаем processTextBox для нового вывода
-        processTextBox.Clear();
-
-        // Считываем числа и систему счисления
         string num1 = number1TextBox.Text;
         string num2 = number2TextBox.Text;
-        int baseOfNumbers = (int)baseFromUpDown.Value; // Предполагаем, что система счисления для сложения указана в baseFromUpDown
+        int baseOfNumbers = (int)UpDownFopSumma.Value;
 
         try
         {
-            // Выполняем сложение и получаем пошаговое объяснение
-            string additionSteps = NumberSystemConverter.Summa(num1, num2, baseOfNumbers);
-            processTextBox.AppendText(additionSteps);
+            string result = NumberSystemConverter.Summa(num1, num2, baseOfNumbers);
+            resultForSumma.Text = "Результат сложения: " + result;
+
+            string summationSteps = NumberSystemConverter.GenerateSummationStepsWithCarry(num1, num2, baseOfNumbers);
+            StepsForSumma.Text = summationSteps;
         }
         catch (Exception ex)
         {
             MessageBox.Show("Ошибка: " + ex.Message);
         }
     }
+    
+    //Кнопка умножение
+    private void MultiplyButton_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            // Получаем числа и систему счисления
+            string num1 = number1TextBox.Text;
+            string num2 = number2TextBox.Text;
+            int baseOfNumbers = (int)UpDownFopSumma.Value;
+
+            // Выполняем умножение и отображаем результат
+            string result = NumberSystemConverter.Multiply(num1, num2, baseOfNumbers);
+            resultForSumma.Text = "Результат умножения: " + result;
+            
+            string MultiSteps = NumberSystemConverter.GenerateMultiplicationSteps(num1, num2, baseOfNumbers);
+            StepsForSumma.Text = MultiSteps;
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("Ошибка: " + ex.Message);
+        }
+    }
+
+    
+    private void SubtractButton_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            // Получаем числа и систему счисления
+            string num1 = number1TextBox.Text;
+            string num2 = number2TextBox.Text;
+            int baseOfNumbers = (int)baseFromUpDown.Value;
+
+            // Выполняем умножение и отображаем результат
+            string result = NumberSystemConverter.Subtract(num1, num2, baseOfNumbers);
+            resultForSumma.Text = "Результат вычитания Первого числа из Второго: " + result;
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("Ошибка: " + ex.Message);
+        }
+    }
+    
+    
+    private void ConvertButForRoman_Click(object sender, EventArgs e)
+{
+    string conversionSteps = "";
+    
+    try
+    {
+        int baseFrom = (int)baseFromUpDown.Value;
+        int baseTo = (int)baseToUpDown.Value;
+        string inputNumber = inputTextBox.Text;
+        long decimalNumber = 0;
+        string linearConversionSteps = "";
+        string treeConversionSteps = "";
+        
+        if (rbToRoman.Checked)
+        {
+            if (int.TryParse(inputNumber, out int arabicNumber))
+            {
+                if (arabicNumber >= 1 && arabicNumber <= 3999) // Ограничение для римских чисел
+                {
+                    string romanNumber = NumberSystemConverter.ConvertToRoman(arabicNumber);
+                    resultForRoman.Text = "Римское: " + romanNumber;
+                    conversionSteps = "Переводим десятичное число " + arabicNumber + " в римское число:\n" + arabicNumber + " -> " + romanNumber + "\n";
+                }
+                else
+                {
+                    MessageBox.Show("Число для перевода в римскую систему должно быть в диапазоне от 1 до 3999.");
+                }
+            }
+            else
+            {
+                try
+                {
+                    decimalNumber = NumberSystemConverter.ConvertFromRoman(inputNumber);
+                    resultForRoman.Text = "Десятичное: " + decimalNumber;
+                    conversionSteps = "Переводим римское число " + inputNumber + " в десятичное число:\n" + inputNumber + " -> " + decimalNumber + "\n";
+                }
+                catch (Exception)
+                {
+                    MessageBox.Show("Некорректный ввод римского числа.");
+                }
+            }
+        }
+        
+        linearStepsLabel.Text = linearConversionSteps;
+        treeStepsRichTextBox.Text = treeConversionSteps;
+    }
+    catch (Exception ex)
+    {
+        MessageBox.Show("Ошибка: " + ex.Message);
+    }
+}
     
     //Кнопка конвертировать
     private void ConvertButton_Click(object sender, EventArgs e)
@@ -412,7 +789,6 @@ public class ConverterForm : Form
         long decimalNumber = 0;
         string linearConversionSteps = "";
         string treeConversionSteps = "";
-
         
         if (rbToNumberSystem.Checked)
         {
@@ -432,36 +808,6 @@ public class ConverterForm : Form
             // Генерация древовидного объяснения
             treeConversionSteps = NumberSystemConverter.GenerateTreeStepsToBase(decimalNumber, baseTo);
         }
-        else if (rbToRoman.Checked)
-        {
-            if (int.TryParse(inputNumber, out int arabicNumber))
-            {
-                if (arabicNumber >= 1 && arabicNumber <= 3999) // Ограничение для римских чисел
-                {
-                    string romanNumber = NumberSystemConverter.ConvertToRoman(arabicNumber);
-                    resultLabel.Text = "Римское: " + romanNumber;
-                    conversionSteps = "Переводим десятичное число " + arabicNumber + " в римское число:\n" + arabicNumber + " -> " + romanNumber + "\n";
-                }
-                else
-                {
-                    MessageBox.Show("Число для перевода в римскую систему должно быть в диапазоне от 1 до 3999.");
-                }
-            }
-            else
-            {
-                try
-                {
-                    decimalNumber = NumberSystemConverter.ConvertFromRoman(inputNumber);
-                    resultLabel.Text = "Десятичное: " + decimalNumber;
-                    conversionSteps = "Переводим римское число " + inputNumber + " в десятичное число:\n" + inputNumber + " -> " + decimalNumber + "\n";
-                }
-                catch (Exception)
-                {
-                    MessageBox.Show("Некорректный ввод римского числа.");
-                }
-            }
-        }
-        
         linearStepsLabel.Text = linearConversionSteps;
         treeStepsRichTextBox.Text = treeConversionSteps;
     }
@@ -493,54 +839,41 @@ public class ConverterForm : Form
         return steps.ToString();
     }
     
+    private void rbAddition_CheckedChanged(object sender, EventArgs e)
+    {
+        // Обновление интерфейса при изменении выбора операции
+        UpdateUI();
+    }
+    
+    private void rbSubstract_CheckedChanged(object sender, EventArgs e)
+    {
+        // Обновление интерфейса при изменении выбора операции
+        UpdateUI();
+    }
+    
+    private void rbMulti_CheckedChanged(object sender, EventArgs e)
+    {
+        UpdateUI();
+    }
+    
     private void rbToNumberSystem_CheckedChanged(object sender, EventArgs e)
     {
         UpdateUI();
     }
-
+    
     private void rbToRoman_CheckedChanged(object sender, EventArgs e)
     {
         UpdateUI();
     }
     
-    private string ConvertToDecimalSteps(string inputNumber, int baseFrom)
-    {
-        StringBuilder steps = new StringBuilder();
-        // Здесь должен быть ваш код для отображения шагов конвертации
-        // Пример вывода:
-        steps.Append("Рассмотрим каждый символ числа начиная с конца и умножим его на основание системы в степени его позиции:\n");
-        for (int i = 0; i < inputNumber.Length; i++)
-        {
-            char digit = inputNumber[inputNumber.Length - 1 - i];
-            int digitValue = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ".IndexOf(digit);
-            steps.Append(digit + " * " + baseFrom + "^" + i + " = " + digitValue * (int)Math.Pow(baseFrom, i) + "\n");
-        }
-        steps.Append("Сложим все полученные значения.\n");
-        return steps.ToString();
-    }
+  [STAThread]
+  static void Main()
+  {
+      // Настройка визуальных стилей и совместимости текстового рендеринга
+      Application.EnableVisualStyles();
+      Application.SetCompatibleTextRenderingDefault(false);
 
-    
-  private string ConvertToBaseSteps(long decimalNumber, int baseTo)
-    {
-        StringBuilder steps = new StringBuilder();
-        steps.Append("Процесс конвертации:\n");
-
-        long quotient = decimalNumber;
-        while (quotient != 0)
-        {
-            int remainder = (int)(quotient % baseTo);
-            quotient /= baseTo;
-            steps.Insert(0, $"Делим {quotient * baseTo} на {baseTo}, остаток {remainder}. Число теперь {quotient}.\n");
-        }
-
-        return steps.ToString();
-    }
-  
-    [STAThread]
-    static void Main()
-    {
-        Application.EnableVisualStyles();
-        Application.SetCompatibleTextRenderingDefault(false);
-        Application.Run(new ConverterForm());
-    }
+      // Запуск главной формы приложения
+      Application.Run(new ConverterForm());
+  }
 }
