@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 using System.Drawing;
-using System.Security.Cryptography;
 
 public class NumberSystemConverter
 {
@@ -138,8 +137,6 @@ public class NumberSystemConverter
         steps.AppendLine("Записываем все остатки в обратном порядке (снизу вверх): " + string.Join("", remainders));
         return steps.ToString();
     }
-
-
     
     //Перевод в Римскую
     public static string ConvertToRoman(int number)
@@ -617,7 +614,7 @@ public class ConverterForm : Form
         LabelforSummaNum1.Visible = isAdditionSelected || isMultiplicationSelected || isSubstractSelected;
         LabelforSummaNum2.Visible = isAdditionSelected || isMultiplicationSelected || isSubstractSelected;
         resultForSumma.Visible = isAdditionSelected || isMultiplicationSelected || isSubstractSelected;
-        TableForSum.Visible = isAdditionSelected || isMultiplicationSelected;
+        TableForSum.Visible = isAdditionSelected || isMultiplicationSelected || isSubstractSelected;
         
         //Вычитание
         SubstractButton.Visible = isSubstractSelected;
@@ -842,19 +839,99 @@ public class ConverterForm : Form
         }
     }
 
+    public static void FillSubtractionTable(DataGridView dataGridView, string num1, string num2, int baseOfNumbers)
+{
+    // Очищаем таблицу перед заполнением
+    dataGridView.Rows.Clear();
+    int maxLength = Math.Max(num1.Length, num2.Length);
+    dataGridView.ColumnCount = maxLength; // Устанавливаем количество столбцов
+
+    // Устанавливаем ширину столбцов
+    foreach (DataGridViewColumn col in dataGridView.Columns)
+    {
+        col.Width = 25;
+    }
+
+    // Добавляем строки для заимствований, чисел, разделителя и результата
+    dataGridView.Rows.Add(5); // 1 для заимствований, 2 для чисел, 1 для разделителя, 1 для результата
+
+    // Подготовка чисел, дополненных нулями слева
+    num1 = num1.PadLeft(maxLength, '0');
+    num2 = num2.PadLeft(maxLength, '0');
+
+    // Массив для хранения заимствований
+    string[] borrowings = new string[maxLength];
+    string result = "";
+
+    // Вычитание с заимствованиями
+    int borrow = 0;
+    for (int i = maxLength - 1; i >= 0; i--)
+    {
+        int digit1 = Convert.ToInt32(num1[i].ToString(), baseOfNumbers);
+        int digit2 = Convert.ToInt32(num2[i].ToString(), baseOfNumbers) + borrow;
+        borrow = 0;
+
+        if (digit1 < digit2)
+        {
+            borrow = 1;
+            digit1 += baseOfNumbers; // Заимствуем из следующего старшего разряда
+            if (i > 0) // Убеждаемся, что не выходим за пределы массива
+                borrowings[i - 1] = "*"; // Отмечаем заимствование
+        }
+
+        int difference = digit1 - digit2;
+        result = Convert.ToString(difference, baseOfNumbers) + result;
+    }
+
+    // Выводим числа
+    for (int i = 0; i < maxLength; i++)
+    {
+        dataGridView.Rows[1].Cells[i].Value = num1[i].ToString();
+        dataGridView.Rows[2].Cells[i].Value = num2[i].ToString();
+    }
+
+    // Выводим заимствования
+    for (int i = 0; i < maxLength; i++)
+    {
+        dataGridView.Rows[0].Cells[i].Value = borrowings[i];
+    }
+
+    // Выводим разделитель тире
+    for (int i = 0; i < maxLength; i++)
+    {
+        dataGridView.Rows[3].Cells[i].Value = "-";
+    }
+
+    // Выводим результат вычитания
+    for (int i = 0; i < result.Length; i++)
+    {
+        dataGridView.Rows[4].Cells[maxLength - result.Length + i].Value = result[i].ToString();
+    }
+}
+    
     //Кнопка вычитание
     private void SubtractButton_Click(object sender, EventArgs e)
     {
+        string num1 = number1TextBox.Text;
+        string num2 = number2TextBox.Text;
+        int baseOfNumbers = (int)UpDownFopSumma.Value;
+
         try
         {
-            // Получаем числа и систему счисления
-            string num1 = number1TextBox.Text;
-            string num2 = number2TextBox.Text;
-            int baseOfNumbers = (int)baseFromUpDown.Value;
-
-            // Выполняем умножение и отображаем результат
             string result = NumberSystemConverter.Subtract(num1, num2, baseOfNumbers);
-            resultForSumma.Text = "Результат вычитания Первого числа из Второго: " + result;
+            resultForSumma.Text = "Результат вычитания: " + result;
+
+            // Очищаем таблицу перед заполнением новыми данными
+            foreach (DataGridViewRow row in TableForSum.Rows)
+            {
+                foreach (DataGridViewCell cell in row.Cells)
+                {
+                    cell.Value = "";
+                }
+            }
+
+            // Заполняем таблицу согласно результатам вычитания
+            FillSubtractionTable(TableForSum, num1, num2, baseOfNumbers);
         }
         catch (Exception ex)
         {
@@ -960,13 +1037,11 @@ public class ConverterForm : Form
     
     private void rbAddition_CheckedChanged(object sender, EventArgs e)
     {
-        // Обновление интерфейса при изменении выбора операции
         UpdateUI();
     }
     
     private void rbSubstract_CheckedChanged(object sender, EventArgs e)
     {
-        // Обновление интерфейса при изменении выбора операции
         UpdateUI();
     }
     
@@ -988,11 +1063,9 @@ public class ConverterForm : Form
   [STAThread]
   static void Main()
   {
-      // Настройка визуальных стилей и совместимости текстового рендеринга
       Application.EnableVisualStyles();
       Application.SetCompatibleTextRenderingDefault(false);
-
-      // Запуск главной формы приложения
+      
       Application.Run(new ConverterForm());
   }
 }
