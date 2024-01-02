@@ -399,7 +399,7 @@ public class ConverterForm : Form
         
         resultForSumma = new Label();
         resultForSumma.Location = new Point(90, 174);
-        resultForSumma.Size = new Size(1050, 20);
+        resultForSumma.Size = new Size(2050, 20);
         resultForSumma.Text = "Результат: ";
         
         TableForSum = new DataGridView();
@@ -529,7 +529,6 @@ public class ConverterForm : Form
         LabelForSubstract.Location = new Point(10, 50);
         LabelForSubstract.Size = new Size(280, 20);
         LabelForSubstract.Text = "Введите систему счисления вычитаемых чисел:";
-        
         
         //Инициализация радиокнопок
         rbToNumberSystem = new RadioButton();
